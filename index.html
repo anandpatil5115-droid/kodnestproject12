@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Placement Prep | Ace Your Placement</title>
+
+    <!-- React, ReactDOM, Babel, React Router, Lucide Icons, and Tailwind CDNs -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/react-router-dom@6.22.3/umd/react-router-dom.production.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        // Tailwind Configuration
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: 'hsl(245, 58%, 51%)',
+                            light: 'hsl(245, 58%, 65%)',
+                            dark: 'hsl(245, 58%, 40%)',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Lucide icon resizing fix */
+        svg {
+            display: inline-block;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, createElement } = React;
+        const {
+            HashRouter,
+            Routes,
+            Route,
+            Link,
+            useNavigate,
+            Outlet,
+            useLocation
+        } = ReactRouterDOM;
+
+        // --- Lucide Icon Wrapper Component ---
+        const Icon = ({ name, size = 20, className = "" }) => {
+            const [iconSvg, setIconSvg] = useState(null);
+
+            useEffect(() => {
+                if (window.lucide) {
+                    // This is a simplified way to render lucide icons in this CDN environment
+                    const icon = window.lucide.icons[name];
+                    if (icon) {
+                        const attrs = {
+                            ...icon[1],
+                            width: size,
+                            height: size,
+                            class: `lucide lucide-${name} ${className}`
+                        };
+                        const children = icon[2].map((tag, i) =>
+                            createElement(tag[0], { key: i, ...tag[1] })
+                        );
+                        setIconSvg(createElement('svg', attrs, children));
+                    }
+                }
+            }, [name, size, className]);
+
+            return iconSvg || <span className="w-5 h-5 inline-block"></span>;
+        };
+
+        // --- Components ---
+
+        const NavLink = ({ to, icon, label, collapsed }) => {
+            const location = useLocation();
+            const isActive = location.pathname === to;
+
+            return (
+                <Link
+                    to={to}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isActive
+                            ? 'bg-primary text-white shadow-md'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-primary'
+                        }`}
+                >
+                    <Icon name={icon} />
+                    {!collapsed && <span className="font-medium">{label}</span>}
+                </Link>
+            );
+        };
+
+        // --- Layouts ---
+
+        const DashboardLayout = () => {
+            return (
+                <div className="flex h-screen bg-slate-50 overflow-hidden text-slate-900">
+                    {/* Sidebar */}
+                    <aside className="w-64 bg-white border-r border-slate-200 flex flex-col">
+                        <div className="p-6 border-b border-slate-200">
+                            <h2 className="text-xl font-bold text-primary flex items-center gap-2">
+                                <Icon name="layout" className="text-primary" />
+                                Placement Prep
+                            </h2>
+                        </div>
+                        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+                            <NavLink to="/dashboard" icon="layout-dashboard" label="Dashboard" />
+                            <NavLink to="/dashboard/practice" icon="code-2" label="Practice" />
+                            <NavLink to="/dashboard/assessments" icon="clipboard-check" label="Assessments" />
+                            <NavLink to="/dashboard/resources" icon="library" label="Resources" />
+                            <NavLink to="/dashboard/profile" icon="user" label="Profile" />
+                        </nav>
+                        <div className="p-4 border-t border-slate-200">
+                            <Link to="/" className="flex items-center gap-3 px-3 py-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                <Icon name="log-out" />
+                                <span className="font-medium">Sign Out</span>
+                            </Link>
+                        </div>
+                    </aside>
+
+                    {/* Main Content */}
+                    <div className="flex-1 flex flex-col h-full overflow-hidden">
+                        {/* Header */}
+                        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
+                            <h1 className="text-lg font-semibold text-slate-700">Placement Prep</h1>
+                            <div className="flex items-center gap-4">
+                                <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors relative">
+                                    <Icon name="bell" />
+                                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                                </button>
+                                <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+                                    <div className="text-right">
+                                        <p className="text-sm font-medium">Anand Patil</p>
+                                        <p className="text-xs text-slate-500">Candidate</p>
+                                    </div>
+                                    <div className="w-10 h-10 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center overflow-hidden">
+                                        <Icon name="user" className="text-primary" />
+                                    </div>
+                                </div>
+                            </div>
+                        </header>
+
+                        {/* Workspace */}
+                        <main className="flex-1 overflow-y-auto p-8">
+                            <Outlet />
+                        </main>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Pages ---
+
+        const LandingPage = () => {
+            const navigate = useNavigate();
+
+            return (
+                <div className="min-h-screen flex flex-col bg-white">
+                    {/* Nav */}
+                    <nav className="flex items-center justify-between px-8 py-4 border-b border-slate-100">
+                        <div className="flex items-center gap-2">
+                            <Icon name="layout" className="text-primary" />
+                            <span className="text-xl font-bold text-slate-900">Placement Prep</span>
+                        </div>
+                        <div className="flex items-center gap-6">
+                            <a href="#" className="text-slate-600 hover:text-primary font-medium">Features</a>
+                            <a href="#" className="text-slate-600 hover:text-primary font-medium">About</a>
+                            <button
+                                onClick={() => navigate('/dashboard')}
+                                className="bg-primary text-white px-6 py-2 rounded-full font-semibold hover:bg-primary-dark transition-all shadow-lg shadow-primary/20"
+                            >
+                                Login
+                            </button>
+                        </div>
+                    </nav>
+
+                    {/* Hero */}
+                    <header className="flex-1 flex flex-col items-center justify-center text-center px-4 py-20 bg-gradient-to-b from-indigo-50/50 to-white">
+                        <div className="inline-block px-4 py-1.5 mb-6 text-sm font-semibold tracking-wide text-primary uppercase bg-indigo-100/50 rounded-full">
+                            Your Career Starts Here
+                        </div>
+                        <h1 className="text-5xl md:text-7xl font-extrabold text-slate-900 mb-6 tracking-tight">
+                            Ace Your <span className="text-primary">Placement</span>
+                        </h1>
+                        <p className="text-xl text-slate-600 max-w-2xl mb-10 leading-relaxed">
+                            Practice, assess, and prepare for your dream job with our comprehensive placement readiness platform. Trusted by thousands of candidates.
+                        </p>
+                        <button
+                            onClick={() => navigate('/dashboard')}
+                            className="bg-primary text-white px-10 py-4 rounded-full text-lg font-bold hover:bg-primary-dark transition-all hover:scale-105 shadow-xl shadow-primary/30"
+                        >
+                            Get Started
+                        </button>
+                    </header>
+
+                    {/* Features */}
+                    <section className="py-24 px-8 bg-slate-50/50">
+                        <div className="max-w-6xl mx-auto">
+                            <div className="text-center mb-16">
+                                <h2 className="text-3xl font-bold mb-4">Everything you need to succeed</h2>
+                                <p className="text-slate-500">Our platform offers a set of specialized tools for modern placement cycles.</p>
+                            </div>
+                            <div className="grid md:grid-cols-3 gap-8">
+                                <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                                    <div className="w-12 h-12 bg-indigo-100 text-primary rounded-xl flex items-center justify-center mb-6">
+                                        <Icon name="code" size={24} />
+                                    </div>
+                                    <h3 className="text-xl font-bold mb-2">Practice Problems</h3>
+                                    <p className="text-slate-500">Solving coding challenges and system design questions in real-time.</p>
+                                </div>
+                                <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                                    <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-6">
+                                        <Icon name="video" size={24} />
+                                    </div>
+                                    <h3 className="text-xl font-bold mb-2">Mock Interviews</h3>
+                                    <p className="text-slate-500">Record and review your responses with peer or AI-driven mock sessions.</p>
+                                </div>
+                                <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-6">
+                                        <Icon name="bar-chart-3" size={24} />
+                                    </div>
+                                    <h3 className="text-xl font-bold mb-2">Track Progress</h3>
+                                    <p className="text-slate-500">Visualize your improvement over time with detailed performance charts.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Footer */}
+                    <footer className="py-12 border-t border-slate-100 text-center text-slate-500 text-sm">
+                        <p>© 2026 Placement Prep. All rights reserved.</p>
+                    </footer>
+                </div>
+            );
+        };
+
+        const PagePlaceholder = ({ title, description }) => (
+            <div className="max-w-4xl">
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">{title}</h2>
+                <p className="text-slate-500 mb-8">{description}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-white p-6 rounded-xl border border-slate-200 h-48 flex items-center justify-center text-slate-300 italic">
+                        [Module Placeholder Content]
+                    </div>
+                    <div className="bg-white p-6 rounded-xl border border-slate-200 h-48 flex items-center justify-center text-slate-300 italic">
+                        [Analytics Placeholder]
+                    </div>
+                </div>
+            </div>
+        );
+
+        // --- App Component ---
+
+        const App = () => {
+            return (
+                <HashRouter>
+                    <Routes>
+                        <Route path="/" element={<LandingPage />} />
+                        <Route path="/dashboard" element={<DashboardLayout />}>
+                            <Route index element={<PagePlaceholder title="Welcome Back, Anand" description="Here's a summary of your placement readiness status." />} />
+                            <Route path="practice" element={<PagePlaceholder title="Practice Zone" description="Improve your coding skills with daily curated problems." />} />
+                            <Route path="assessments" element={<PagePlaceholder title="Assessments" description="Test your knowledge with simulated exam environments." />} />
+                            <Route path="resources" element={<PagePlaceholder title="Resource Library" description="Cheat sheets, articles, and roadmaps for your preparation." />} />
+                            <Route path="profile" element={<PagePlaceholder title="User Profile" description="Manage your personal information and track your achievements." />} />
+                        </Route>
+                    </Routes>
+                </HashRouter>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

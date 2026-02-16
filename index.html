@@ -6,12 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Placement Prep | Ace Your Placement</title>
 
-    <!-- React, ReactDOM, Babel, React Router, Lucide Icons, and Tailwind CDNs -->
+    <!-- React, ReactDOM, Babel, React Router, Lucide Icons, Recharts, and Tailwind CDNs -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/react-router-dom@6.22.3/umd/react-router-dom.production.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/prop-types/prop-types.min.js"></script>
+    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
     <script>
@@ -71,6 +73,168 @@
             Outlet,
             useLocation
         } = ReactRouterDOM;
+
+        const {
+            Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer
+        } = Recharts;
+
+        // --- Dashboard Components ---
+
+        const Card = ({ title, children, className = "" }) => (
+            <div className={`bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden ${className}`}>
+                {title && (
+                    <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+                        <h3 className="font-bold text-slate-800">{title}</h3>
+                    </div>
+                )}
+                <div className="p-6">
+                    {children}
+                </div>
+            </div>
+        );
+
+        const ReadinessScore = ({ score }) => {
+            const size = 200;
+            const strokeWidth = 12;
+            const center = size / 2;
+            const radius = (size - strokeWidth) / 2;
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (score / 100) * circumference;
+
+            return (
+                <div className="flex flex-col items-center justify-center py-4">
+                    <div className="relative" style={{ width: size, height: size }}>
+                        <svg className="transform -rotate-90" width={size} height={size}>
+                            <circle
+                                cx={center}
+                                cy={center}
+                                r={radius}
+                                fill="transparent"
+                                stroke="#f1f5f9"
+                                strokeWidth={strokeWidth}
+                            />
+                            <circle
+                                cx={center}
+                                cy={center}
+                                r={radius}
+                                fill="transparent"
+                                stroke="hsl(245, 58%, 51%)"
+                                strokeWidth={strokeWidth}
+                                strokeDasharray={circumference}
+                                style={{
+                                    strokeDashoffset: offset,
+                                    transition: 'stroke-dashoffset 1.5s ease-in-out',
+                                    strokeLinecap: 'round'
+                                }}
+                            />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <span className="text-4xl font-extrabold text-slate-900">{score}</span>
+                            <span className="text-slate-400 text-sm font-medium">/ 100</span>
+                        </div>
+                    </div>
+                    <p className="mt-4 text-slate-500 font-semibold uppercase tracking-wider text-xs">Readiness Score</p>
+                </div>
+            );
+        };
+
+        const SkillBreakdown = () => {
+            const data = [
+                { subject: 'DSA', A: 75, fullMark: 100 },
+                { subject: 'Sys Design', A: 60, fullMark: 100 },
+                { subject: 'Comm', A: 80, fullMark: 100 },
+                { subject: 'Resume', A: 85, fullMark: 100 },
+                { subject: 'Aptitude', A: 70, fullMark: 100 },
+            ];
+
+            return (
+                <div style={{ width: '100%', height: 300 }}>
+                    <ResponsiveContainer>
+                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
+                            <PolarGrid stroke="#e2e8f0" />
+                            <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} />
+                            <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                            <Radar
+                                name="Skills"
+                                dataKey="A"
+                                stroke="hsl(245, 58%, 51%)"
+                                fill="hsl(245, 58%, 51%)"
+                                fillOpacity={0.6}
+                            />
+                        </RadarChart>
+                    </ResponsiveContainer>
+                </div>
+            );
+        };
+
+        const PracticeCard = () => (
+            <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h4 className="font-bold text-slate-900 text-lg">Dynamic Programming</h4>
+                        <p className="text-slate-500 text-sm">3 of 10 problems solved</p>
+                    </div>
+                    <button className="bg-primary text-white px-4 py-2 rounded-lg font-bold hover:bg-primary-dark transition-colors text-sm shadow-lg shadow-primary/20">
+                        Continue
+                    </button>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2.5">
+                    <div className="bg-primary h-2.5 rounded-full" style={{ width: '30%' }}></div>
+                </div>
+            </div>
+        );
+
+        const GoalTracker = () => (
+            <div className="space-y-6">
+                <div>
+                    <div className="flex justify-between text-sm mb-2">
+                        <span className="font-bold text-slate-700">Problems Solved</span>
+                        <span className="text-slate-500 font-medium">12/20 this week</span>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-2">
+                        <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '60%' }}></div>
+                    </div>
+                </div>
+                <div className="flex justify-between px-2">
+                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => (
+                        <div key={idx} className="flex flex-col items-center gap-2">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${idx < 4 ? 'bg-indigo-100 text-primary border-2 border-primary/20' : 'bg-slate-50 text-slate-400 border-2 border-slate-100'
+                                }`}>
+                                {idx < 4 ? <Icon name="check" size={14} /> : day}
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-400">{day}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+
+        const AssessmentList = () => {
+            const assessments = [
+                { name: 'DSA Mock Test', time: 'Tomorrow, 10:00 AM', icon: 'clipboard-list', color: 'indigo' },
+                { name: 'System Design Review', time: 'Wed, 2:00 PM', icon: 'server', color: 'purple' },
+                { name: 'HR Interview Prep', time: 'Friday, 11:00 AM', icon: 'users', color: 'blue' }
+            ];
+
+            return (
+                <div className="space-y-4">
+                    {assessments.map((item, i) => (
+                        <div key={i} className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50/50 transition-all cursor-pointer">
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-${item.color}-50 text-${item.color}-600`}>
+                                <Icon name={item.icon} size={20} />
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="font-bold text-slate-800 text-sm">{item.name}</h4>
+                                <p className="text-slate-500 text-xs">{item.time}</p>
+                            </div>
+                            <div className="text-slate-300">
+                                <Icon name="chevron-right" size={16} />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
 
         // --- Lucide Icon Wrapper Component ---
         const Icon = ({ name, size = 20, className = "" }) => {
@@ -165,6 +329,42 @@
         };
 
         // --- Pages ---
+        const DashboardPage = () => (
+            <div className="max-w-7xl mx-auto space-y-8">
+                <div>
+                    <h2 className="text-3xl font-extrabold text-slate-900 leading-tight">Dashboard Overview</h2>
+                    <p className="text-slate-500 mt-1">Ready to tackle your goals today? Here's where you stand.</p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    {/* Left Column */}
+                    <div className="lg:col-span-8 space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <Card title="Overall Readiness">
+                                <ReadinessScore score={72} />
+                            </Card>
+                            <Card title="Skill Breakdown">
+                                <SkillBreakdown />
+                            </Card>
+                        </div>
+                        <Card title="Continue Practice">
+                            <PracticeCard />
+                        </Card>
+                    </div>
+
+                    {/* Right Column */}
+                    <div className="lg:col-span-4 space-y-8">
+                        <Card title="Weekly Goals">
+                            <GoalTracker />
+                        </Card>
+                        <Card title="Upcoming Assessments">
+                            <AssessmentList />
+                        </Card>
+                    </div>
+                </div>
+            </div>
+        );
+
         const LandingPage = () => {
             const navigate = useNavigate();
             return (
@@ -247,7 +447,7 @@
                 <Routes>
                     <Route path="/" element={<LandingPage />} />
                     <Route path="/dashboard" element={<DashboardLayout />}>
-                        <Route index element={<PagePlaceholder title="Welcome Back, Anand" description="Here's a summary of your placement readiness status." />} />
+                        <Route index element={<DashboardPage />} />
                         <Route path="practice" element={<PagePlaceholder title="Practice Zone" description="Improve your coding skills with daily curated problems." />} />
                         <Route path="assessments" element={<PagePlaceholder title="Assessments" description="Test your knowledge with simulated exam environments." />} />
                         <Route path="resources" element={<PagePlaceholder title="Resource Library" description="Cheat sheets, articles, and roadmaps for your preparation." />} />

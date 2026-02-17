@@ -76,7 +76,7 @@
 
         const {
             Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer
-        } = Recharts;
+        } = window.Recharts || {};
 
         // --- Dashboard Components ---
 
@@ -199,8 +199,7 @@
                 <div className="flex justify-between px-1">
                     {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => (
                         <div key={idx} className="flex flex-col items-center gap-3">
-                            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-[10px] font-bold transition-all shadow-sm ${idx < 4 ? 'bg-primary text-white scale-110 shadow-primary/20' : 'bg-slate-50 text-slate-400 border border-slate-200'
-                                }`}>
+                            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-[10px] font-bold transition-all shadow-sm ${idx < 4 ? 'bg-primary text-white scale-110 shadow-primary/20' : 'bg-slate-50 text-slate-400 border border-slate-200'}`}>
                                 {idx < 4 ? <Icon name="check" size={16} /> : day}
                             </div>
                             <span className={`text-[10px] font-bold ${idx < 4 ? 'text-primary' : 'text-slate-400'}`}>{day}</span>

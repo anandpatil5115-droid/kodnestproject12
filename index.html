@@ -427,6 +427,14 @@
             },
             getById: (id) => {
                 return HistoryManager.getAll().find(e => e.id === id);
+            },
+            update: (id, updates) => {
+                const history = HistoryManager.getAll();
+                const index = history.findIndex(e => e.id === id);
+                if (index !== -1) {
+                    history[index] = { ...history[index], ...updates };
+                    localStorage.setItem('prep_history', JSON.stringify(history));
+                }
             }
         };
 
@@ -522,9 +530,67 @@
 
         const ResultsPage = () => {
             const { id } = ReactRouterDOM.useParams();
-            const data = HistoryManager.getById(id);
+            const initialData = HistoryManager.getById(id);
+            const [data, setData] = useState(initialData);
 
             if (!data) return <div className="p-8 text-center text-slate-500">Analysis not found.</div>;
+
+            // Compute current score based on confidence
+            const computeInteractiveScore = (confidenceMap) => {
+                let score = initialData.readinessScore; // Start from base already computed
+                Object.values(confidenceMap).forEach(status => {
+                    if (status === 'know') score += 2;
+                    if (status === 'practice') score -= 2;
+                });
+                return Math.max(0, Math.min(100, score));
+            };
+
+            const toggleSkill = (skill) => {
+                const confidenceMap = { ...(data.skillConfidenceMap || {}) };
+                const currentStatus = confidenceMap[skill] || 'practice';
+                const newStatus = currentStatus === 'practice' ? 'know' : 'practice';
+                confidenceMap[skill] = newStatus;
+
+                const newScore = computeInteractiveScore(confidenceMap);
+                const updatedData = { ...data, skillConfidenceMap: confidenceMap, readinessScore: newScore };
+
+                setData(updatedData);
+                HistoryManager.update(id, { skillConfidenceMap: confidenceMap, readinessScore: newScore });
+            };
+
+            const copyToClipboard = (text, label) => {
+                navigator.clipboard.writeText(text);
+                alert(`${label} copied to clipboard!`);
+            };
+
+            const downloadTxt = () => {
+                const content = `
+REPORT: ${data.role} @ ${data.company}
+Date: ${new Date(data.createdAt).toLocaleDateString()}
+Readiness Score: ${data.readinessScore}%
+
+7-DAY PLAN:
+${data.plan.map(s => `${s.days} (${s.focus}):\n- ${s.tasks.join('\n- ')}`).join('\n\n')}
+
+ROUND CHECKLIST:
+${data.checklist.map(r => `${r.round}:\n- ${r.items.join('\n- ')}`).join('\n\n')}
+
+TOP 10 INTERVIEW QUESTIONS:
+${data.questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
+                `.trim();
+
+                const blob = new Blob([content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${data.company}_Prep_Report.txt`;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            const weakSkills = Object.entries(data.extractedSkills).flatMap(([_, skills]) =>
+                skills.filter(s => (data.skillConfidenceMap && data.skillConfidenceMap[s]) !== 'know')
+            ).slice(0, 3);
 
             return (
                 <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -537,9 +603,14 @@
                             </div>
                             <h2 className="text-3xl font-extrabold text-slate-900">{data.role}</h2>
                         </div>
-                        <button onClick={() => window.print()} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg font-bold text-sm hover:bg-slate-50 transition-colors flex items-center gap-2">
-                            <Icon name="printer" size={16} /> Print Report
-                        </button>
+                        <div className="flex flex-wrap gap-2">
+                            <button onClick={downloadTxt} className="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-primary-dark transition-colors flex items-center gap-2">
+                                <Icon name="download" size={16} /> Download report
+                            </button>
+                            <button onClick={() => window.print()} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg font-bold text-sm hover:bg-slate-50 transition-colors flex items-center gap-2">
+                                <Icon name="printer" size={16} /> Print
+                            </button>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -547,16 +618,30 @@
                         <div className="lg:col-span-4 space-y-8">
                             <Card title="Readiness Score">
                                 <ReadinessScore score={data.readinessScore} />
+                                <p className="text-center text-[10px] text-slate-400 font-bold uppercase mt-2">Score updates live based on confidence</p>
                             </Card>
-                            <Card title="Detected Skills">
+                            <Card title="Skill Self-Assessment">
                                 <div className="space-y-6">
                                     {Object.entries(data.extractedSkills).map(([cat, skills]) => (
                                         <div key={cat}>
                                             <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">{cat}</h4>
                                             <div className="flex flex-wrap gap-2">
-                                                {skills.map(s => (
-                                                    <span key={s} className="px-3 py-1 bg-slate-50 border border-slate-100 text-slate-700 text-xs font-bold rounded-lg">{s}</span>
-                                                ))}
+                                                {skills.map(s => {
+                                                    const isKnown = data.skillConfidenceMap && data.skillConfidenceMap[s] === 'know';
+                                                    return (
+                                                        <button
+                                                            key={s}
+                                                            onClick={() => toggleSkill(s)}
+                                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-2 ${isKnown
+                                                                    ? 'bg-primary border-primary text-white shadow-sm'
+                                                                    : 'bg-slate-50 border-slate-100 text-slate-600 hover:border-primary/30'
+                                                                }`}
+                                                        >
+                                                            {s}
+                                                            <Icon name={isKnown ? "check" : "circle"} size={10} />
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     ))}
@@ -566,6 +651,22 @@
 
                         {/* Prep Plan */}
                         <div className="lg:col-span-8 space-y-8">
+                            <Card title="Quick Export Tools">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <button onClick={() => copyToClipboard(data.plan.map(s => `${s.days}: ${s.focus}`).join('\n'), 'Plan')} className="p-4 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100 transition-all text-left">
+                                        <Icon name="copy" className="text-primary mb-2" size={18} />
+                                        <div className="font-bold text-sm">Copy 7-Day Plan</div>
+                                    </button>
+                                    <button onClick={() => copyToClipboard(data.checklist.map(r => r.round).join('\n'), 'Checklist')} className="p-4 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100 transition-all text-left">
+                                        <Icon name="copy" className="text-primary mb-2" size={18} />
+                                        <div className="font-bold text-sm">Copy Checklist</div>
+                                    </button>
+                                    <button onClick={() => copyToClipboard(data.questions.join('\n'), 'Questions')} className="p-4 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100 transition-all text-left">
+                                        <Icon name="copy" className="text-primary mb-2" size={18} />
+                                        <div className="font-bold text-sm">Copy 10 Questions</div>
+                                    </button>
+                                </div>
+                            </Card>
                             <Card title="7-Day Preparation Roadmap">
                                 <div className="space-y-8">
                                     {data.plan.map((step, i) => (
@@ -617,6 +718,25 @@
                                     </div>
                                 </Card>
                             </div>
+
+                            {/* Action Next Box */}
+                            <Card className="bg-gradient-to-br from-indigo-600 to-indigo-800 text-white border-none shadow-xl">
+                                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                                    <div className="space-y-2">
+                                        <h4 className="text-xl font-bold">Preparation Focus</h4>
+                                        <p className="text-indigo-100 text-sm">Based on your assessment, focus on these weak areas:</p>
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            {weakSkills.length > 0 ? weakSkills.map(s => (
+                                                <span key={s} className="px-2 py-1 bg-white/10 rounded-md text-[10px] font-bold uppercase tracking-wider">{s}</span>
+                                            )) : <span className="text-xs italic">All skills mastered! Stay confident.</span>}
+                                        </div>
+                                    </div>
+                                    <div className="shrink-0 text-center space-y-4">
+                                        <div className="inline-block px-4 py-1.5 bg-white/20 rounded-full text-xs font-bold uppercase tracking-widest">Action Next</div>
+                                        <p className="text-2xl font-black">Start Day 1 plan now.</p>
+                                    </div>
+                                </div>
+                            </Card>
                         </div>
                     </div>
                 </div>
